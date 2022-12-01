@@ -1,9 +1,0 @@
-plugin: community.vmware.vmware_host_inventory
-strict: True
-hostname: "vmmsgcid01.fr.world.socgen"
-username: "eur\x160462"
-password: "Dagnu0049"
-validate_certs: False
-with_tags: True
-properties:
-  - name
