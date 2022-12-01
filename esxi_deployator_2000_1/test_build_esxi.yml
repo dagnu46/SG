@@ -1,0 +1,78 @@
+- hosts: localhost
+  gather_facts: no
+  become: yes
+
+  vars:
+    esxi_hostname: "VMMESXNDQMP117.dns22-3.socgen"
+    global_path : /usr/share/nginx/html/isos/esxi_deployator_2000
+    HW_Vendor : "HP"
+
+  tasks:
+      # Customer: "{{ esxitodeploy.value.Customer }}"
+      # IP_vmKernel: "{{ esxitodeploy.value.IP_vmKernel }}"
+      # vmKernel_netmask: "{{ esxitodeploy.value.vmKernel_netmask }}"
+      # vmKernel_gateway: "{{ esxitodeploy.value.vmKernel_gateway }}"
+      # vlan_vmKernel: "{{ esxitodeploy.value.vlan_vmKernel }}"
+      # IP_vMotion: "{{ esxitodeploy.value.IP_vMotion }}"
+      # vMotion_netmask: "{{ esxitodeploy.value.vMotion_netmask }}"
+      # vlan_vMotion: "{{ esxitodeploy.value.vlan_vMotion }}"
+      # vMotion_vDS: "{{ esxitodeploy.value.vMotion_vDS }}"
+      # vMotion_dvPG: "{{ esxitodeploy.value.vMotion_dvPG }}"
+      # IP_NFS1: "{{ esxitodeploy.value.IP_NFS1 }}"
+      # NFS1_netmask: "{{ esxitodeploy.value.NFS1_netmask }}"
+      # IP_NFS2: "{{ esxitodeploy.value.IP_NFS2 }}"
+      # NFS2_netmask: "{{ esxitodeploy.value.NFS2_netmask }}"
+      # ipmi_ip: "{{ esxitodeploy.value.IP_IPMI_DRAC }}"
+      # HW_Vendor: "{{ esxitodeploy.value.HW_Vendor }}"
+      # ipmi_user: "{{ esxitodeploy.value.ipmi_user }}"
+      # vCenter: "{{ esxitodeploy.value.vCenter }}"
+      # Cluster: "{{ esxitodeploy.value.Cluster }}"
+      # Datacenter: "{{ esxitodeploy.value.Datacenter }}"
+      # # vcenter_username: "{{ esxitodeploy.value.vcenter_username }}"
+      # # vcenter_password: "{{ esxitodeploy.value.vcenter_password }}"
+      # # ntp: "{{ esxitodeploy.value.ntp }}"
+      # dns: "{{ esxitodeploy.value.dns1 }},{{ esxitodeploy.value.dns2 }}"
+      # # ipmi_password: "{{ esxitodeploy.value.ipmi_password }}"   
+      # rootesxi: 'root'
+
+
+## Backup ESXi Configuration
+  # - name: Save the ESXi configuration locally by authenticating directly against the ESXi host
+  #   vmware_cfg_backup:
+  #     dest: /tmp/ 
+  #     hostname: '{{ esxi_hostname }}'      
+  #     username: '{{ esxi_username }}'
+  #     password: '{{ esxi_password }}'
+  #     state: saved
+  #     validate_certs: false
+  #   delegate_to: localhost
+
+
+  - name: Purge (in case of previous failure) Deleting all related files from staging location and web server
+    shell: |
+      warn: false
+      umount /mnt/{{ esxi_hostname }}     
+      rm -rf {{ esxi_hostname }}
+      rm -rf {{ global_path }}/baremetal/temp/{{ esxi_hostname }}
+      rm -rf {{ global_path }}/baremetal/{{ esxi_hostname }}
+      rm -f {{ global_path }}/iso/{{ esxi_hostname }}.iso
+      rm -rf /temp/{{ esxi_hostname }}
+      rm -rf /mnt/{{ esxi_hostname }}
+    args:
+      chdir: '{{ global_path }}'
+    ignore_errors: True
+  
+
+## {{ global_path }}/baremetal is the staging directory.
+  - name: Mounting source directory from official production ESXi ISO . . . copying over build files . . . backing up defaults . . .
+    shell: |
+        # warn: false
+        mkdir /mnt/{{ esxi_hostname }}
+        mount -o loop -t iso9660 {{ global_path }}/esxiisosrc/{{ HW_Vendor }}/*.iso /mnt/{{ esxi_hostname }}/
+        mkdir {{ global_path }}/baremetal/{{ esxi_hostname }}
+        mkdir {{ global_path }}/baremetal/temp/{{ esxi_hostname }}
+        mkdir -p {{ global_path }}/baremetal/temp/{{ esxi_hostname }}/etc/vmware/weasel
+        cp -r /mnt/{{ esxi_hostname }}/* {{ global_path }}/baremetal/{{ esxi_hostname }}/
+        umount /mnt/{{ esxi_hostname }}
+        mv {{ global_path }}/baremetal/{{ esxi_hostname }}/boot.cfg {{ global_path }}/baremetal/{{ esxi_hostname }}/boot.cfg.orig
+        mv {{ global_path }}/baremetal/{{ esxi_hostname }}/efi/boot/boot.cfg {{ global_path }}/baremetal/{{ esxi_hostname }}/efi/boot/boot.cfg.orig
